@@ -1,0 +1,85 @@
+{
+  "version": "1.0.0",
+  "description": "FIX Protocol message structures",
+  
+  "messageTypes": {
+    "D": {
+      "name": "NewOrderSingle",
+      "category": "Order",
+      "description": "Order to buy or sell a stock",
+      "direction": "Broker → Market",
+      "requiredTags": [
+        "49",
+        "56",
+        "35",
+        "55",
+        "54",
+        "38",
+        "10"
+      ],
+      "optionalTags": [
+        "44"
+      ],
+      "example": "49=123456|56=789012|35=D|55=AAPL|54=1|38=100|44=150.50|10=042|"
+    },
+    
+    "8": {
+      "name": "ExecutionReport",
+      "category": "Response",
+      "description": "Report of order execution or rejection",
+      "direction": "Market → Broker",
+      "requiredTags": [
+        "49",
+        "56",
+        "35",
+        "55",
+        "39",
+        "10"
+      ],
+      "optionalTags": [
+        "38",
+        "44",
+        "58"
+      ],
+      "examples": {
+        "executed": "49=789012|56=123456|35=8|55=AAPL|38=100|44=150.50|39=2|10=234|",
+        "rejected": "49=789012|56=123456|35=8|55=TSLA|39=8|58=Insufficient quantity|10=345|"
+      }
+    }
+  },
+  
+  "validationRules": {
+    "NewOrderSingle": {
+      "Side": {
+        "description": "Must be Buy (1) or Sell (2)",
+        "allowedValues": ["1", "2"]
+      },
+      "OrderQty": {
+        "description": "Must be a positive integer",
+        "minValue": 1
+      },
+      "Price": {
+        "description": "Must be a positive number",
+        "minValue": 0.01
+      }
+    },
+    "ExecutionReport": {
+      "OrdStatus": {
+        "description": "Must be Filled (2) or Rejected (8)",
+        "allowedValues": ["2", "8"]
+      }
+    }
+  },
+  
+  "businessRules": {
+    "NewOrderSingle": [
+      "Symbol must exist in market inventory (for Buy orders)",
+      "Quantity must be available (for Buy orders)",
+      "Price is optional but recommended"
+    ],
+    "ExecutionReport": [
+      "If OrdStatus=8 (Rejected), Text field should contain rejection reason",
+      "If OrdStatus=2 (Filled), Quantity and Price should be present"
+    ]
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "protocol": "FIX.4.2-Simplified",
+  "version": "1.0.0",
+  "description": "Simplified FIX Protocol implementation for trading simulation",
+  "delimiter": "|",
+  
+  "tags": {
+    "system": [
+      {
+        "tag": "49",
+        "name": "SenderCompID",
+        "type": "String",
+        "required": true,
+        "description": "Assigned value used to identify firm sending message"
+      },
+      {
+        "tag": "56",
+        "name": "TargetCompID",
+        "type": "String",
+        "required": true,
+        "description": "Assigned value used to identify receiving firm"
+      },
+      {
+        "tag": "35",
+        "name": "MsgType",
+        "type": "String",
+        "required": true,
+        "description": "Defines message type",
+        "validValues": {
+          "D": "NewOrderSingle",
+          "8": "ExecutionReport"
+        }
+      },
+      {
+        "tag": "10",
+        "name": "CheckSum",
+        "type": "String",
+        "required": true,
+        "description": "Three byte, simple checksum"
+      }
+    ],
+    
+    "order": [
+      {
+        "tag": "55",
+        "name": "Symbol",
+        "type": "String",
+        "required": true,
+        "description": "Ticker symbol of the instrument (e.g., AAPL, GOOGL)"
+      },
+      {
+        "tag": "54",
+        "name": "Side",
+        "type": "Char",
+        "required": true,
+        "description": "Side of order",
+        "validValues": {
+          "1": "Buy",
+          "2": "Sell"
+        }
+      },
+      {
+        "tag": "38",
+        "name": "OrderQty",
+        "type": "Int",
+        "required": true,
+        "description": "Number of shares ordered"
+      },
+      {
+        "tag": "44",
+        "name": "Price",
+        "type": "Price",
+        "required": false,
+        "description": "Price per unit of quantity"
+      }
+    ],
+    
+    "execution": [
+      {
+        "tag": "39",
+        "name": "OrdStatus",
+        "type": "Char",
+        "required": true,
+        "description": "Identifies current status of order",
+        "validValues": {
+          "2": "Filled",
+          "8": "Rejected"
+        }
+      },
+      {
+        "tag": "58",
+        "name": "Text",
+        "type": "String",
+        "required": false,
+        "description": "Free format text string (rejection reason)"
+      }
+    ]
+  },
+  
+  "messageTypes": {
+    "D": {
+      "name": "NewOrderSingle",
+      "description": "Order to buy or sell an instrument",
+      "requiredTags": ["49", "56", "35", "55", "54", "38", "10"],
+      "optionalTags": ["44"]
+    },
+    "8": {
+      "name": "ExecutionReport",
+      "description": "Report of order execution or rejection",
+      "requiredTags": ["49", "56", "35", "55", "39", "10"],
+      "optionalTags": ["38", "44", "58"]
+    }
+  }
+}
