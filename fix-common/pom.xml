@@ -12,14 +12,30 @@
     </parent>
 
     <artifactId>fix-common</artifactId>
+    <packaging>jar</packaging>
+
     <name>FIX Common Library</name>
-    <description>Common classes shared across all modules</description>
+    <description>Shared library for FIX message handling and configuration</description>
 
     <dependencies>
+        <!-- Gson pour parser le JSON de configuration -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10.1</version>
         </dependency>
+        
+        <!-- Les dépendances SLF4J, Logback et JUnit sont héritées du parent -->
     </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.json</include>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
 </project>

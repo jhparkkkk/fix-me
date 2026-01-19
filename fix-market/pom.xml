@@ -12,14 +12,17 @@
     </parent>
 
     <artifactId>fix-market</artifactId>
+    <packaging>jar</packaging>
+
     <name>FIX Market</name>
-    <description>Market simulator with inventory</description>
+    <description>Market component for executing orders</description>
 
     <dependencies>
+        <!-- Dépendance sur fix-common -->
         <dependency>
             <groupId>fixme</groupId>
             <artifactId>fix-common</artifactId>
-            <version>1.0.0</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
@@ -27,24 +30,15 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>fixme.market.Market</mainClass>
-                                </transformer>
-                            </transformers>
-                            <finalName>fix-market</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>fixme.market.MarketApplication</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
             </plugin>
         </plugins>
     </build>
