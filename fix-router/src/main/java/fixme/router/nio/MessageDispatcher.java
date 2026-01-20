@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 /**
  * Dispatches received messages for processing.
  * Handles message boundary detection (delimiter-based).
+ * TODO: Integrate with MessageProcessor for actual message handling.
  */
 public class MessageDispatcher {
     
@@ -22,17 +23,7 @@ public class MessageDispatcher {
         if (data == null || data.isEmpty()) {
             return;
         }
-        
-        // Split by delimiter
-        String delimiterRegex = Pattern.quote(delimiter);
-        String[] messages = data.split(delimiterRegex);
-        
-        for (String msg : messages) {
-            if (!msg.trim().isEmpty()) {
-                String fullMessage = msg + delimiter;
-                processMessage(fullMessage, source);
-            }
-        }
+        processMessage(data, source);
     }
     
     private void processMessage(String message, ClientConnection source) {

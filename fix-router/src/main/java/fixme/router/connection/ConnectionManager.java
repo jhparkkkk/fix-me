@@ -28,11 +28,12 @@ public class ConnectionManager {
 
     }
 
-    public void registerConnection(SocketChannel channel, ComponentType type) {
+    public ClientConnection registerConnection(SocketChannel channel, ComponentType type) {
         String clientId = idGenerator.generateId(type);
         ClientConnection connection = new ClientConnection(clientId, channel, type);
         connections.put(clientId, connection);
         logger.info("Registered new connection: {} of type {}", clientId, type);
+        return connection;
     }
 
     public void unregisterConnection(String clientId) {
