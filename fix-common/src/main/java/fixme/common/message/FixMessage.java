@@ -1,6 +1,7 @@
 package fixme.common.message;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -16,7 +17,7 @@ public class FixMessage {
     private final Map<String, String> fields;
 
     public FixMessage() {
-        this.fields = new HashMap<>();
+        this.fields = new LinkedHashMap<>();
     }
 
     public void setField(String tag, String value) {
@@ -99,6 +100,8 @@ public class FixMessage {
         }
         
         int checksum = sum % 256;
+
+        logger.debug("⚠️ Calculated checksum: {}", String.format("%03d", checksum));
         return String.format("%03d", checksum);
     }
 
@@ -152,3 +155,4 @@ public class FixMessage {
 
     
 }
+
