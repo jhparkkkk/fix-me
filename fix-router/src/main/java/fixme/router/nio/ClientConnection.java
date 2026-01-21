@@ -38,6 +38,8 @@ public class ClientConnection {
     private final StringBuilder messageBuilder;
 
     private volatile boolean identified;
+    private volatile boolean markedForClosure = false;
+
 
     public ClientConnection(String clientId, SocketChannel channel, ComponentType componentType) {
         this.clientId = clientId;
@@ -184,6 +186,15 @@ public class ClientConnection {
         }
     }
 
+    public void markForClosure() {
+        this.markedForClosure = true;
+        logger.info("Marked connection for client {} for closure", clientId);
+    }
+
+    public boolean shouldClose() {
+        return markedForClosure && !hasDataToWrite();
+    }
+    
     @Override
     public String toString() {
         return String.format("ClientConnection{id=%s, type=%s, connectedAt=%s}", 

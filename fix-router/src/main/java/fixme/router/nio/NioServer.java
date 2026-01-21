@@ -32,7 +32,7 @@ import java.util.Set;
 public class NioServer implements Runnable {
     
     private static final Logger logger = LoggerFactory.getLogger(NioServer.class);
-    private static final int SELECT_TIMEOUT = 1000; // 1 second
+    private static final int SELECT_TIMEOUT = 10; // 10 milliseconds
     
     private final int brokerPort;
     private final int marketPort;
@@ -164,7 +164,7 @@ public class NioServer implements Runnable {
         ClientConnection connection = connectionManager.registerConnection(
             clientChannel, componentType
         );
-        
+
         connection.setSelector(selector);
         
         SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
@@ -221,6 +221,11 @@ public class NioServer implements Runnable {
         // If no more data to write, remove WRITE interest
         if (!connection.hasDataToWrite()) {
             key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+        }
+
+        if (connection.shouldClose()) {
+            logger.info("Closing connection for {} after sending all data", connection.getClientId());
+            handleDisconnect(key, connection);
         }
     }
     
