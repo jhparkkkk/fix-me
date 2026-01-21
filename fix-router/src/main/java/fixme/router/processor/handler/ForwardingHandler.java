@@ -22,8 +22,14 @@ public class ForwardingHandler implements MessageHandler {
     public boolean handle(MessageContext context) {
         ClientConnection target = context.getTarget();
         String rawMessage = context.getRawMessage();
+        String senderId = context.getSource().getClientId();
+    
+        String formatted = String.format("[%s → %s] %s", 
+            senderId, target.getClientId(), rawMessage);
 
-        target.queueMessage(rawMessage);
+        target.queueMessage(formatted);
+
+        target.enableWriteInterest();
         
         logger.info("Forwarded message from {} to {} ({} bytes)", 
                     context.getSource().getClientId(), 

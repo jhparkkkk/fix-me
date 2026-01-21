@@ -165,6 +165,8 @@ public class NioServer implements Runnable {
             clientChannel, componentType
         );
         
+        connection.setSelector(selector);
+        
         SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
         clientKey.attach(connection);
         

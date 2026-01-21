@@ -2,6 +2,8 @@ package fixme.router.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -27,6 +29,7 @@ public class ClientConnection {
     private final SocketChannel channel;
     private final ComponentType type;
     private final Instant connectedAt;
+    private Selector selector;
     
     private final ByteBuffer readBuffer;
     private final ConcurrentLinkedQueue<ByteBuffer> writeQueue;
@@ -73,18 +76,39 @@ public class ClientConnection {
         this.identified = identified;
     }
 
+    public void setSelector(Selector selector) {
+        this.selector = selector; 
+    }
+
+    public void enableWriteInterest() {
+        if (selector == null) {
+            logger.warn("Cannot enable write interest - selector not set for {}", clientId);
+            return;
+        }
+        
+        try {
+            SelectionKey key = channel.keyFor(selector);
+            if (key != null && key.isValid()) {
+                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+                logger.debug("Enabled OP_WRITE for {}", clientId);
+            }
+        } catch (Exception e) {
+            logger.error("Error enabling write interest for {}", clientId, e);
+        }
+    }
+
     public void queueMessage(String message) {
         if (message == null || message.isEmpty()) {
             logger.warn("Attempted to queue null or empty message for client {}", clientId);
             return;
         }
 
-        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        String messageToSend = message.endsWith("\n") ? message : message + "\n";
+        byte[] bytes = messageToSend.getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         writeQueue.offer(buffer);
 
-        logger.debug("Queued message for client {}: {}", clientId, message);
-
+        logger.debug("Queued message for client {}: {}", clientId, messageToSend);
     }
 
     public boolean hasDataToWrite() {
