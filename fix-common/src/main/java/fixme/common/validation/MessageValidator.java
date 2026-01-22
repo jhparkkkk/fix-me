@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-
+import java.util.regex.Matcher;
 /**
  * Validates raw FIX messages for format correctness and security.
  * Protects against malformed messages, DOS attacks, and injection attempts.
@@ -25,10 +25,56 @@ public class MessageValidator {
     
     // Dangerous characters (for injection protection)
     private static final Pattern DANGEROUS_CHARS = Pattern.compile("[<>'\";\\\\]");
-    
+    private static final Pattern CHECKSUM_PATTERN = Pattern.compile("10=\\d{3}\\|");
+
     private MessageValidator() {
         throw new UnsupportedOperationException("Utility class");
     }
+
+    public static ValidationResult validateSingleMessage(String rawMessage) {
+        if (rawMessage == null || rawMessage.isEmpty()) {
+            return ValidationResult.fail("Message is null or empty");
+        }
+        
+        java.util.regex.Matcher matcher = CHECKSUM_PATTERN.matcher(rawMessage);
+        
+        int checksumCount = 0;
+        int lastChecksumEnd = 0;
+        
+        while (matcher.find()) {
+            checksumCount++;
+            lastChecksumEnd = matcher.end();
+        }
+        logger.debug("Checksum count found: {}", checksumCount);        
+        if (checksumCount == 0) {
+            logger.debug("No checksum found in message");
+            return ValidationResult.fail(
+                "Incomplete message: missing checksum (tag 10)"
+            );
+        }
+        
+        if (checksumCount > 1) {
+            logger.debug("Multiple checksums found: {}", checksumCount);
+            return ValidationResult.fail(
+                String.format("Multiple messages detected (%d messages in buffer). " +
+                             "Send one message at a time.", checksumCount)
+            );
+        }
+        
+        if (lastChecksumEnd < rawMessage.length()) {
+            String trailingData = rawMessage.substring(lastChecksumEnd);
+            logger.debug("Trailing data after checksum: '{}'", trailingData);
+            return ValidationResult.fail(
+                String.format("Data after checksum: '%s'. Message must end with checksum.", 
+                             trailingData)
+            );
+        }
+        
+        logger.debug("Single message validation passed");
+        return ValidationResult.success();
+    }
+
+    
     
     /**
      * Validates a raw FIX message before parsing.
@@ -89,6 +135,14 @@ public class MessageValidator {
             if (part.isEmpty()) {
                 continue;  // Last part after final | is empty
             }
+
+            long equalsCount = part.chars().filter(ch -> ch == '=').count();
+            if (equalsCount != 1) {
+                return ValidationResult.fail(
+                    String.format("Invalid tag format: '%s' (expected exactly one '=' per tag)", part)
+                );
+            }
+            
             
             // 7. Each part must have exactly one '='
             String[] keyValue = part.split("=", 2);
@@ -162,4 +216,9 @@ public class MessageValidator {
                rawMessage.contains("|") &&
                rawMessage.endsWith("|");
     }
+
+    
+
+
+    
 }

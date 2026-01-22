@@ -8,6 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,9 @@ public class ClientConnection {
     private volatile boolean identified;
     private volatile boolean markedForClosure = false;
 
+    private static final int MAX_CONSECUTIVE_ERRORS = 5;
+    private final AtomicInteger consecutiveErrorCount = new AtomicInteger(0);
+
 
     public ClientConnection(String clientId, SocketChannel channel, ComponentType componentType) {
         this.clientId = clientId;
@@ -50,6 +54,7 @@ public class ClientConnection {
         this.writeQueue = new ConcurrentLinkedQueue<>();
         this.messageBuilder = new StringBuilder();
         this.identified = false;
+  
 
         logger.info("New client connection established: {} of type {}", clientId, componentType);
     }
@@ -194,7 +199,26 @@ public class ClientConnection {
     public boolean shouldClose() {
         return markedForClosure && !hasDataToWrite();
     }
-    
+
+    public boolean incrementErrorCount() {
+        int errorsCount = consecutiveErrorCount.incrementAndGet();
+        logger.debug("Error count for client {}: {}/{}", clientId, errorsCount, MAX_CONSECUTIVE_ERRORS);
+        return errorsCount >= MAX_CONSECUTIVE_ERRORS;
+    }
+
+    public void resetErrorCount() {
+        int previousErrorCount = consecutiveErrorCount.getAndSet(0);
+        if (previousErrorCount > 0) {
+            logger.debug("Reset error count for client {} from {}", clientId, previousErrorCount);
+        }
+    }
+
+    public int getErrorCount() {
+        return consecutiveErrorCount.get();
+    }
+
+
+
     @Override
     public String toString() {
         return String.format("ClientConnection{id=%s, type=%s, connectedAt=%s}", 

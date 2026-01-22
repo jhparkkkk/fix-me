@@ -26,7 +26,12 @@ public class MessageDispatcher {
         if (data == null || data.isEmpty()) {
             return;
         }
-        processMessage(data, source);
+        String cleanedData = data.replaceAll("[\\r\\n]+", "");
+        
+        if (!cleanedData.isEmpty()) {
+            processMessage(cleanedData, source);
+        }
+
     }
     
     private void processMessage(String message, ClientConnection source) {
