@@ -35,6 +35,12 @@ build-common:
 run:
 	@java -jar fix-router/target/fix-router.jar
 
+broker:
+	@java -jar fix-broker/target/fix-broker-1.0.0-jar-with-dependencies.jar
+
+market:
+	@java -jar fix-market/target/fix-market-1.0-SNAPSHOT-jar-with-dependencies.jar
+	
 # Production
 prod:
 	@mvn clean install
