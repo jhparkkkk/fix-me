@@ -18,6 +18,7 @@
         <module>fix-router</module>
         <module>fix-broker</module>
         <module>fix-market</module>
+        <module>fix-integration-tests</module>
     </modules>
 
     <properties>

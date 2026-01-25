@@ -15,3 +15,7 @@ Checksum: Sum of ASCII values % 256, formatted as 3 digits
 Reference: FIX Protocol 4.2 (simplified)
 
 https://www.onixs.biz/fix-dictionary/4.2/index.html
+
+Socket Programming using Java NIO
+https://medium.com/@adityakulrajdtu/socket-programming-using-java-nio-42b19a3b458c
+

@@ -8,10 +8,21 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class BrokerApplication {
     
     private static final Logger logger = LoggerFactory.getLogger(BrokerApplication.class);
+    
+    // Validation patterns
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile("^[A-Z]{1,10}$");
+    private static final Pattern MARKET_ID_PATTERN = Pattern.compile("^[BM]\\d{5}$");
+    
+    // Business limits
+    private static final int MAX_QUANTITY = 1_000_000;
+    private static final int MIN_QUANTITY = 1;
+    private static final double MAX_PRICE = 1_000_000.0;
+    private static final double MIN_PRICE = 0.01;
     
     public static void main(String[] args) {
         logger.info("=".repeat(60));
@@ -71,22 +82,40 @@ public class BrokerApplication {
         
         while (client.isConnected()) {
             System.out.print("\n" + brokerId + " > ");
-            String input = scanner.nextLine().trim();
+            
+            String input;
+            try {
+                input = scanner.nextLine().trim();
+            } catch (Exception e) {
+                logger.warn("Error reading input", e);
+                continue;
+            }
             
             if (input.isEmpty()) continue;
             
             try {
                 processCommand(client, brokerId, input);
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Invalid number format");
+                System.out.println("   Quantity must be an integer (e.g., 100)");
+                System.out.println("   Price must be a decimal (e.g., 150.50)");
+            } catch (IllegalArgumentException e) {
+                System.out.println("❌ " + e.getMessage());
+            } catch (IOException e) {
+                System.out.println("❌ Communication error: " + e.getMessage());
+                logger.error("Error sending message", e);
             } catch (Exception e) {
-                System.out.println("❌ Error: " + e.getMessage());
-                System.out.println("   Type 'help' for usage");
+                System.out.println("❌ Unexpected error: " + e.getMessage());
+                logger.error("Unexpected error processing command", e);
             }
         }
     }
     
     private static void processCommand(BrokerClient client, String brokerId, String input) throws IOException {
-        String[] parts = input.toLowerCase().split("\\s+");
-        String command = parts[0];
+        String[] parts = input.split("\\s+");
+        if (parts.length == 0) return;
+        
+        String command = parts[0].toLowerCase();
         
         switch (command) {
             case "buy":
@@ -95,9 +124,12 @@ public class BrokerApplication {
                     System.out.println("Example: buy AAPL 100 150.50");
                     return;
                 }
-                sendBuy(client, brokerId, parts[1].toUpperCase(), 
-                       Integer.parseInt(parts[2]), 
-                       Double.parseDouble(parts[3]));
+                
+                String buySymbol = validateSymbol(parts[1]);
+                int buyQty = validateQuantity(parts[2]);
+                double buyPrice = validatePrice(parts[3]);
+                
+                sendBuy(client, brokerId, buySymbol, buyQty, buyPrice);
                 break;
                 
             case "sell":
@@ -106,24 +138,29 @@ public class BrokerApplication {
                     System.out.println("Example: sell AAPL 50 150.50");
                     return;
                 }
-                sendSell(client, brokerId, parts[1].toUpperCase(),
-                        Integer.parseInt(parts[2]),
-                        Double.parseDouble(parts[3]));
+                
+                String sellSymbol = validateSymbol(parts[1]);
+                int sellQty = validateQuantity(parts[2]);
+                double sellPrice = validatePrice(parts[3]);
+                
+                sendSell(client, brokerId, sellSymbol, sellQty, sellPrice);
                 break;
                 
             case "market":
             case "to":
-                if (parts.length < 5) {
+                if (parts.length < 6) {
                     System.out.println("Usage: market <marketId> <buy|sell> <symbol> <qty> <price>");
-                    System.out.println("Example: market M00002 buy AAPL 100 150.50");
+                    System.out.println("Example: market M00001 buy AAPL 100 150.50");
                     return;
                 }
-                String marketId = parts[1].toUpperCase();
-                String side = parts[2].equalsIgnoreCase("buy") ? "1" : "2";
-                sendToMarket(client, brokerId, marketId, side,
-                           parts[3].toUpperCase(),
-                           Integer.parseInt(parts[4]),
-                           Double.parseDouble(parts[5]));
+                
+                String marketId = validateMarketId(parts[1]);
+                String side = validateSide(parts[2]);
+                String symbol = validateSymbol(parts[3]);
+                int qty = validateQuantity(parts[4]);
+                double price = validatePrice(parts[5]);
+                
+                sendToMarket(client, brokerId, marketId, side, symbol, qty, price);
                 break;
                 
             case "help":
@@ -135,13 +172,123 @@ public class BrokerApplication {
             case "quit":
             case "exit":
             case "q":
-                return;
+                System.out.println("Goodbye!");
+                System.exit(0);
+                break;
                 
             default:
                 System.out.println("Unknown command: " + command);
                 System.out.println("Type 'help' for available commands");
         }
     }
+    
+    // ========== VALIDATION METHODS ==========
+    
+    private static String validateSymbol(String symbol) {
+        if (symbol == null || symbol.isEmpty()) {
+            throw new IllegalArgumentException("Symbol cannot be empty");
+        }
+        
+        String upperSymbol = symbol.toUpperCase();
+        
+        if (!SYMBOL_PATTERN.matcher(upperSymbol).matches()) {
+            throw new IllegalArgumentException(
+                String.format("Invalid symbol '%s'. Must be 1-10 uppercase letters (e.g., AAPL, GOOGL)", symbol)
+            );
+        }
+        
+        return upperSymbol;
+    }
+    
+    private static int validateQuantity(String qtyStr) {
+        int qty;
+        try {
+            qty = Integer.parseInt(qtyStr);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                String.format("Invalid quantity '%s'. Must be an integer", qtyStr)
+            );
+        }
+        
+        if (qty < MIN_QUANTITY) {
+            throw new IllegalArgumentException(
+                String.format("Quantity must be at least %d", MIN_QUANTITY)
+            );
+        }
+        
+        if (qty > MAX_QUANTITY) {
+            throw new IllegalArgumentException(
+                String.format("Quantity cannot exceed %,d", MAX_QUANTITY)
+            );
+        }
+        
+        return qty;
+    }
+    
+    private static double validatePrice(String priceStr) {
+        double price;
+        try {
+            price = Double.parseDouble(priceStr);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                String.format("Invalid price '%s'. Must be a number (e.g., 150.50)", priceStr)
+            );
+        }
+        
+        if (Double.isNaN(price) || Double.isInfinite(price)) {
+            throw new IllegalArgumentException("Invalid price value");
+        }
+        
+        if (price < MIN_PRICE) {
+            throw new IllegalArgumentException(
+                String.format("Price must be at least $%.2f", MIN_PRICE)
+            );
+        }
+        
+        if (price > MAX_PRICE) {
+            throw new IllegalArgumentException(
+                String.format("Price cannot exceed $%,.2f", MAX_PRICE)
+            );
+        }
+        
+        return price;
+    }
+    
+    private static String validateMarketId(String marketId) {
+        if (marketId == null || marketId.isEmpty()) {
+            throw new IllegalArgumentException("Market ID cannot be empty");
+        }
+        
+        String upperMarketId = marketId.toUpperCase();
+        
+        if (!MARKET_ID_PATTERN.matcher(upperMarketId).matches()) {
+            throw new IllegalArgumentException(
+                String.format("Invalid market ID '%s'. Must be format M00001 or B00001", marketId)
+            );
+        }
+        
+        return upperMarketId;
+    }
+    
+    private static String validateSide(String side) {
+        if (side == null || side.isEmpty()) {
+            throw new IllegalArgumentException("Side cannot be empty");
+        }
+        
+        String lowerSide = side.toLowerCase();
+        
+        if ("buy".equals(lowerSide) || "1".equals(lowerSide)) {
+            return "1";
+        } else if ("sell".equals(lowerSide) || "2".equals(lowerSide)) {
+            return "2";
+        } else {
+            throw new IllegalArgumentException(
+                String.format("Invalid side '%s'. Must be 'buy' or 'sell'", side)
+            );
+        }
+    }
+    
+    // ========== SEND METHODS ==========
     
     private static void printHelp() {
         System.out.println("\n" + "=".repeat(60));
@@ -158,13 +305,19 @@ public class BrokerApplication {
         System.out.println();
         System.out.println("  market <marketId> <buy|sell> <symbol> <qty> <price>");
         System.out.println("      Send order to specific market");
-        System.out.println("      Example: market M00002 buy MSFT 75 380");
+        System.out.println("      Example: market M00001 buy MSFT 75 380");
         System.out.println();
         System.out.println("  help | h | ?");
         System.out.println("      Show this help");
         System.out.println();
         System.out.println("  quit | exit | q");
         System.out.println("      Exit broker");
+        System.out.println("=".repeat(60));
+        System.out.println();
+        System.out.println("Limits:");
+        System.out.println("  Quantity: 1 to 1,000,000");
+        System.out.println("  Price:    $0.01 to $1,000,000.00");
+        System.out.println("  Symbol:   1-10 uppercase letters");
         System.out.println("=".repeat(60));
     }
     
