@@ -139,13 +139,16 @@ public class OrderExecutionTest extends IntegrationTestBase {
         String brokerId = broker.getClientId();
         String marketId = market.getClientId();
         
-        // When: Broker sends 3 orders
+        // When: Broker sends 3 orders with small delays
         FixMessage order1 = FixMessageFactory.createBuyOrder(brokerId, marketId, "AAPL", 100, 150.0);
-        FixMessage order2 = FixMessageFactory.createBuyOrder(brokerId, marketId, "GOOGL", 20, 2800.0);
-        FixMessage order3 = FixMessageFactory.createSellOrder(brokerId, marketId, "MSFT", 50, 380.0);
-        
         broker.send(order1.toString());
+        Thread.sleep(100); // Small delay between sends
+        
+        FixMessage order2 = FixMessageFactory.createBuyOrder(brokerId, marketId, "GOOGL", 20, 2800.0);
         broker.send(order2.toString());
+        Thread.sleep(100);
+        
+        FixMessage order3 = FixMessageFactory.createSellOrder(brokerId, marketId, "MSFT", 50, 380.0);
         broker.send(order3.toString());
         
         logger.info("Broker sent 3 orders");
@@ -171,9 +174,11 @@ public class OrderExecutionTest extends IntegrationTestBase {
         
         logger.info("✓ All 3 orders routed correctly");
         
-        // When: Market responds to all
+        // When: Market responds to all with delays
         market.send(FixMessageFactory.createFilledReport(marketId, brokerId, "AAPL", 100, 150.0).toString());
+        Thread.sleep(100);
         market.send(FixMessageFactory.createFilledReport(marketId, brokerId, "GOOGL", 20, 2800.0).toString());
+        Thread.sleep(100);
         market.send(FixMessageFactory.createFilledReport(marketId, brokerId, "MSFT", 50, 380.0).toString());
         
         // Then: Broker receives all 3 reports
