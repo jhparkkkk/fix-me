@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Order book that maintains available instruments and their quantities.
- * Thread-safe using ConcurrentHashMap.
  */
 public class OrderBook {
     
@@ -21,9 +20,6 @@ public class OrderBook {
         initializeInventory();
     }
     
-    /**
-     * Initializes the inventory with default instruments.
-     */
     private void initializeInventory() {
         inventory.put("AAPL", 1000);
         inventory.put("GOOGL", 500);
@@ -37,14 +33,6 @@ public class OrderBook {
         );
     }
     
-    /**
-     * Checks if an order can be executed.
-     * 
-     * @param symbol the instrument symbol
-     * @param quantity the requested quantity
-     * @param isBuy true if buy order, false if sell
-     * @return true if the order can be executed
-     */
     public synchronized boolean canExecute(String symbol, int quantity, boolean isBuy) {
         if (!inventory.containsKey(symbol)) {
             logger.debug("Symbol {} not traded on this market", symbol);
@@ -54,28 +42,16 @@ public class OrderBook {
         int available = inventory.get(symbol);
         
         if (isBuy) {
-            // For buy orders, broker wants to buy from market
-            // Market must have enough shares to sell
             boolean canFill = available >= quantity;
             logger.debug("Buy order: {} shares available, {} requested -> {}", 
                         available, quantity, canFill ? "OK" : "REJECT");
             return canFill;
         } else {
-            // For sell orders, broker wants to sell to market
-            // Market always accepts (buying from broker)
             logger.debug("Sell order: always accept (market buys from broker)");
             return true;
         }
     }
     
-    /**
-     * Executes an order by updating the inventory.
-     * This method should only be called after canExecute returns true.
-     * 
-     * @param symbol the instrument symbol
-     * @param quantity the quantity to execute
-     * @param isBuy true if buy order, false if sell
-     */
     public synchronized void execute(String symbol, int quantity, boolean isBuy) {
         int current = inventory.getOrDefault(symbol, 0);
         int newQuantity;
@@ -95,26 +71,14 @@ public class OrderBook {
         inventory.put(symbol, newQuantity);
     }
     
-    /**
-     * Returns the available quantity for a symbol.
-     * 
-     * @param symbol the instrument symbol
-     * @return available quantity, or 0 if not traded
-     */
     public int getAvailable(String symbol) {
         return inventory.getOrDefault(symbol, 0);
     }
     
-    /**
-     * Returns true if the symbol is traded on this market.
-     */
     public boolean isTradedSymbol(String symbol) {
         return inventory.containsKey(symbol);
     }
     
-    /**
-     * Displays the current inventory.
-     */
     public void displayInventory() {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("           MARKET INVENTORY");

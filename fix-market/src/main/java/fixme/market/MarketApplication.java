@@ -159,7 +159,7 @@ public class MarketApplication {
     private static void displayExecution(String symbol, int quantity, double price, 
                                         String side, int remaining) {
         System.out.println("\n" + "─".repeat(60));
-        System.out.println("✅ ORDER FILLED");
+        System.out.println("ORDER FILLED");
         System.out.printf("   %-8s %s x%,d @ $%.2f%n", side, symbol, quantity, price);
         System.out.printf("   Remaining inventory: %,d shares%n", remaining);
         System.out.println("─".repeat(60));
@@ -167,7 +167,7 @@ public class MarketApplication {
     
     private static void displayRejection(String symbol, int quantity, String side, String reason) {
         System.out.println("\n" + "─".repeat(60));
-        System.out.println("❌ ORDER REJECTED");
+        System.out.println("ORDER REJECTED");
         System.out.printf("   %-8s %s x%,d%n", side, symbol, quantity);
         System.out.printf("   Reason: %s%n", reason);
         System.out.println("─".repeat(60));
