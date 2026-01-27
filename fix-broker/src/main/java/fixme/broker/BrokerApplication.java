@@ -14,6 +14,9 @@ public class BrokerApplication {
     
     private static final Logger logger = LoggerFactory.getLogger(BrokerApplication.class);
     
+    // Static broker ID for prompt redisplay
+    private static volatile String currentBrokerId = null;
+    
     // Validation patterns
     private static final Pattern SYMBOL_PATTERN = Pattern.compile("^[A-Z]{1,10}$");
     private static final Pattern MARKET_ID_PATTERN = Pattern.compile("^2\\d{5}$");
@@ -35,6 +38,7 @@ public class BrokerApplication {
             client.connect();
             
             String brokerId = client.getBrokerId();
+            currentBrokerId = brokerId; // Store for prompt redisplay
             logger.info("Broker {} ready", brokerId);
             
             Thread receiverThread = new Thread(() -> receiveMessages(client));
@@ -99,12 +103,18 @@ public class BrokerApplication {
                 System.out.println("ERROR: Invalid number format");
                 System.out.println("   Quantity must be an integer (e.g., 100)");
                 System.out.println("   Price must be a decimal (e.g., 150.50)");
+                System.out.print(brokerId + " > ");
+                System.out.flush();
             } catch (IOException e) {
                 System.out.println("ERROR: Communication error: " + e.getMessage());
                 logger.error("Error sending message", e);
+                System.out.print(brokerId + " > ");
+                System.out.flush();
             } catch (Exception e) {
                 System.out.println("ERROR: Unexpected error: " + e.getMessage());
                 logger.error("Unexpected error processing command", e);
+                System.out.print(brokerId + " > ");
+                System.out.flush();
             }
         }
     }
@@ -324,11 +334,20 @@ public class BrokerApplication {
                 displayReport(msg);
             } else if (rawMessage.contains("ERROR")) {
                 System.out.println("\nERROR: " + rawMessage);
+                redisplayPrompt();
             }
         } catch (Exception e) {
             if (rawMessage.contains("ERROR")) {
                 System.out.println("\nERROR: " + rawMessage);
+                redisplayPrompt();
             }
+        }
+    }
+    
+    private static void redisplayPrompt() {
+        if (currentBrokerId != null) {
+            System.out.print(currentBrokerId + " > ");
+            System.out.flush();
         }
     }
     
@@ -354,5 +373,6 @@ public class BrokerApplication {
         }
         
         System.out.println("─".repeat(60));
+        redisplayPrompt();
     }
 }
